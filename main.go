@@ -16,9 +16,8 @@ func main() {
 	fmt.Println("listener addr of Bob: ", bob.GetListenerAddr())
 
 	bob.Connect(listenerAddrAlice)
-	bob.SendMsg("Hello Alice")
-	alice.SendMsg("Hej Bob")
 
+	// cursed, I know
 	for {
 	}
 }

@@ -44,7 +44,6 @@ func waitForIncommingConnections(listener net.Listener) {
 			fmt.Println("Error while accepting new connection")
 			log.Fatal(err)
 		}
-
 		go handleConnection(conn)
 	}
 }
@@ -52,15 +51,26 @@ func waitForIncommingConnections(listener net.Listener) {
 func handleConnection(connection net.Conn) {
 	dec := json.NewDecoder(connection)
 
-	var recivedMsg string
+	var recivedEnvelope Envelope
 
 	for {
-		err := dec.Decode(&recivedMsg)
+		err := dec.Decode(&recivedEnvelope)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Println(recivedMsg)
+		switch recivedEnvelope.Type {
+
+		case ConnectEnvelope:
+			var listenerAddrOfSender string
+
+			if err := json.Unmarshal(recivedEnvelope.Payload, &listenerAddrOfSender); err != nil {
+				fmt.Println("Error while reciving connection")
+				continue
+			}
+
+			fmt.Println("Someone connected to me, who is listening at: ", listenerAddrOfSender)
+		}
 	}
 }
 
@@ -71,12 +81,21 @@ func (p *peer) Connect(addr string) {
 	}
 
 	p.connection = conn
+
+	ownListenerAddrMarshaled, err := json.Marshal(p.ownListeningAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	envelopeToSend := Envelope{Type: ConnectEnvelope, Payload: ownListenerAddrMarshaled}
+
+	p.SendEnvelope(envelopeToSend)
 }
 
-func (p *peer) SendMsg(msg string) {
+func (p *peer) SendEnvelope(envelope Envelope) {
 	enc := json.NewEncoder(p.connection)
-	if err := enc.Encode(msg); err != nil {
-		fmt.Println("Error while sending: ", msg)
+	if err := enc.Encode(envelope); err != nil {
+		fmt.Println("Error while envelope")
 		log.Fatal(err)
 	}
 }
